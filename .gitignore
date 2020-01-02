@@ -1,0 +1,6 @@
+/target/
+/evidence/
+/dist/
+/.agent-local/
+.DS_Store
+__pycache__/
