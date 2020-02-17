@@ -127,3 +127,35 @@ pub fn perft(position: Position, depth: u8) -> u64 {
         .collect::<Vec<_>>();
     walk(&mut { position }, &mut buffers)
 }
+
+#[derive(Default)]
+pub(crate) struct Activity {
+    pub quiet: i32,
+    pub jumps: i32,
+    pub blocked: i32,
+    pub threatened: u32,
+}
+
+pub(crate) fn activity(position: Position, side: Side) -> Activity {
+    let mut result = Activity::default();
+    let enemy = position.mask(side.other());
+    let occupied = position.occupied();
+    for source in squares(position.mask(side)) {
+        let king = position.kings() & bit(source) != 0;
+        let mut open = false;
+        for ray in rays(source, side, king) {
+            if ray.near < 32 && occupied & bit(ray.near) == 0 {
+                result.quiet += 1;
+                open = true;
+            } else if ray.far < 32 && enemy & bit(ray.near) != 0 && occupied & bit(ray.far) == 0 {
+                result.jumps += 1;
+                result.threatened |= bit(ray.near);
+                open = true;
+            }
+        }
+        if !open {
+            result.blocked += 1;
+        }
+    }
+    result
+}
