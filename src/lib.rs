@@ -5,5 +5,7 @@ pub mod game;
 pub mod moves;
 pub mod oracle;
 pub mod pdn;
+pub mod review;
 pub mod search;
 pub mod tablebase;
+pub mod wire;
