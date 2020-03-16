@@ -107,6 +107,7 @@ struct Session {
     start: Position,
     game: Option<Game>,
     local: bool,
+    revision_base: usize,
     epoch: Instant,
     table_path: Option<PathBuf>,
     table: Option<Tablebase>,
@@ -152,7 +153,7 @@ impl Session {
             "policy": game.policy(), "outcome": game.outcome(), "offer": game.offer(), "clock": game.clock(),
             "legal": game.legal().into_iter().map(view_turn).collect::<Vec<_>>(),
             "turns": turns.into_iter().map(view_turn).collect::<Vec<_>>(),
-            "revision": game.events().len(), "pdn": pdn, "quiet_plies": game.history().quiet_plies(),
+            "revision": self.revision_base + game.events().len(), "pdn": pdn, "quiet_plies": game.history().quiet_plies(),
         }))
     }
 
@@ -195,7 +196,11 @@ impl Session {
                         start = start.play(crate::board::resolve_turn(start, &text)?)?;
                     }
                 }
-                self.game = Some(Game::new(start, policy, clock, local, now)?);
+                let next_game = Game::new(start, policy, clock, local, now)?;
+                if let Some(game) = &self.game {
+                    self.revision_base += game.events().len() + 1;
+                }
+                self.game = Some(next_game);
                 self.start = start;
                 self.local = local;
                 self.snapshot()
@@ -216,6 +221,9 @@ impl Session {
                 if record.result != result_token(game.outcome()) {
                     return Err("saved result is not reproducible from these turns".into());
                 }
+                if let Some(previous) = &self.game {
+                    self.revision_base += previous.events().len() + 1;
+                }
                 self.start = record.start;
                 self.game = Some(game);
                 self.snapshot()
@@ -229,9 +237,10 @@ impl Session {
                 revision,
                 command,
             } => {
+                let base = self.revision_base;
                 let game = self.game()?;
                 game.tick(now, stamp)?;
-                if revision != game.events().len() {
+                if revision != base + game.events().len() {
                     return Err("stale revision. Refresh game state.".into());
                 }
                 game.apply(actor, command, now, stamp)?;
@@ -244,8 +253,9 @@ impl Session {
                 depth,
             } if self.local => {
                 self.update_clock()?;
+                let base = self.revision_base;
                 let game = self.game()?;
-                if revision != game.events().len() || game.legal().is_empty() {
+                if revision != base + game.events().len() || game.legal().is_empty() {
                     return Err("no active bot turn at that revision".into());
                 }
                 let side = game.position().side();
@@ -358,6 +368,7 @@ pub fn serve(table_path: Option<PathBuf>) -> io::Result<()> {
         start: Position::start(),
         game: None,
         local: true,
+        revision_base: 0,
         epoch: Instant::now(),
         table_path,
         table: None,
