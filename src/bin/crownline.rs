@@ -60,6 +60,19 @@ fn run() -> Result<(), String> {
                     .map_err(|e| e.to_string())?
             );
         }
+        "explore" | "verify-frontier" => {
+            let directory = args.next().ok_or("explore|verify-frontier TABLE PARTITION [LIMIT FEN]")?;
+            let path = args.next().ok_or("missing partition path")?;
+            let table = tablebase::Tablebase::load(Path::new(&directory))?;
+            let stats = if command == "explore" {
+                let limit = args.next().ok_or("missing expansion limit")?.parse::<usize>().map_err(|e| e.to_string())?;
+                let start = args.next().ok_or("missing starting FEN")?.parse()?;
+                tablebase::frontier::build(Path::new(&path), start, limit, &table)?
+            } else {
+                tablebase::frontier::verify(Path::new(&path), &table)?
+            };
+            println!("{}", serde_json::to_string_pretty(&stats).map_err(|e| e.to_string())?);
+        }
         "probe" => {
             let path = args.next().ok_or("probe DIRECTORY FEN")?;
             let position = args.next().ok_or("probe DIRECTORY FEN")?.parse()?;
@@ -102,7 +115,7 @@ fn run() -> Result<(), String> {
             let witness = crownline::review::witness(position, &table, 32)?;
             println!("{}", serde_json::to_string_pretty(&witness).map_err(|e| e.to_string())?);
         }
-        _ => return Err("commands: perft, legal, solve, verify-table, probe, search, pdn, review, witness, wire".into()),
+        _ => return Err("commands: perft, legal, solve, verify-table, explore, verify-frontier, probe, search, pdn, review, witness, wire".into()),
     }
     if args.next().is_some() {
         return Err("unexpected extra argument".into());
