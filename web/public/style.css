@@ -70,7 +70,7 @@ h1 span { color: var(--amber); }
 .player.active .clock { border-color: #7a9367; color: #d4edbc; }
 .board {
   --max: 100%; width: min(100%, var(--max)); margin: .18rem auto; display: grid;
-  grid-template-columns: repeat(8, minmax(0, 1fr)); aspect-ratio: 1; overflow: hidden;
+  grid-template: repeat(8, minmax(0, 1fr)) / repeat(8, minmax(0, 1fr)); aspect-ratio: 1; overflow: hidden;
   border: clamp(4px, 1vw, 9px) solid #3b493d; border-radius: .55rem;
   box-shadow: 0 .6rem 1.4rem #080d0a5c; background: #d4c298;
 }
