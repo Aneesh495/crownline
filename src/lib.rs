@@ -2,6 +2,7 @@
 pub mod board;
 pub mod eval;
 pub mod game;
+pub mod lab;
 pub mod moves;
 pub mod oracle;
 pub mod pdn;
