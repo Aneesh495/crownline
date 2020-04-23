@@ -3,6 +3,7 @@ use crate::{
     eval::Evaluator,
     game::{History, board_outcome},
     moves,
+    tablebase::{Tablebase, Wdl},
 };
 use serde::Serialize;
 use std::{
@@ -11,6 +12,7 @@ use std::{
 };
 
 pub const MATE: i32 = 30_000;
+const PROOF_WIN: i32 = 25_000;
 const INF: i32 = 31_000;
 const MAX_DEPTH: u8 = 32;
 const MAX_PLY: usize = MAX_DEPTH as usize + 25;
@@ -75,6 +77,7 @@ pub struct SearchResult {
     pub nodes: u64,
     pub cutoffs: u64,
     pub table_hits: u64,
+    pub proof_hits: u64,
     pub table_bytes: usize,
     pub abandoned: Option<u8>,
     pub stop: &'static str,
@@ -133,6 +136,8 @@ struct Search<'a> {
     nodes: u64,
     cutoffs: u64,
     hits: u64,
+    proofs: u64,
+    tablebase: Option<&'a Tablebase>,
 }
 
 type Interrupted = &'static str;
@@ -201,6 +206,12 @@ impl Search<'_> {
         }
         if self.config.rules == Rules::House && history.house_draw().is_some() {
             return Ok(0);
+        }
+        if ply > 0 {
+            if let Some(proof) = self.tablebase.and_then(|table| table.probe(position)) {
+                self.proofs += 1;
+                return Ok(proof_score(proof.wdl));
+            }
         }
         if depth == 0 && !frame.moves[0].is_capture() {
             return Ok(self.evaluator.evaluate(position).clamp(-20_000, 20_000));
@@ -312,12 +323,35 @@ impl Search<'_> {
     }
 }
 
+fn proof_score(value: Wdl) -> i32 {
+    match value {
+        Wdl::Win => PROOF_WIN,
+        Wdl::Loss => -PROOF_WIN,
+        Wdl::Draw => 0,
+    }
+}
+
 pub fn analyze(
     history: &History,
     evaluator: &dyn Evaluator,
     limits: Limits<'_>,
     config: Config,
 ) -> SearchResult {
+    analyze_with_table(history, evaluator, limits, config, None)
+}
+
+pub fn analyze_with_table(
+    history: &History,
+    evaluator: &dyn Evaluator,
+    limits: Limits<'_>,
+    config: Config,
+    tablebase: Option<&Tablebase>,
+) -> SearchResult {
+    let tablebase = if config.rules == Rules::Board {
+        tablebase
+    } else {
+        None
+    };
     let table_entries = config.table_entries.min(1 << 20);
     let mut engine = Search {
         evaluator,
@@ -328,6 +362,8 @@ pub fn analyze(
         nodes: 0,
         cutoffs: 0,
         hits: 0,
+        proofs: 0,
+        tablebase,
     };
     let position = history.current();
     let root = moves::legal(position);
@@ -345,6 +381,7 @@ pub fn analyze(
         nodes: 0,
         cutoffs: 0,
         table_hits: 0,
+        proof_hits: 0,
         table_bytes: table_entries * size_of::<Option<Entry>>(),
         abandoned: None,
         stop: "depth_limit",
@@ -352,6 +389,26 @@ pub fn analyze(
     if terminal.is_some() {
         result.stop = "terminal";
         return result;
+    }
+    if let Some((table, proof)) =
+        tablebase.and_then(|table| table.probe(position).map(|proof| (table, proof)))
+    {
+        let witness = root.iter().find(|&&turn| {
+            let mut next = position;
+            next.make(turn);
+            table.probe(next).is_some_and(|child| {
+                proof_score(child.wdl) == -proof_score(proof.wdl)
+                    && (proof.wdl == Wdl::Draw || child.witness_rank < proof.witness_rank)
+            })
+        });
+        if let Some(&turn) = witness {
+            result.best = Some(turn);
+            result.pv.push(turn);
+            result.score = Some(proof_score(proof.wdl));
+            result.proof_hits = 1;
+            result.stop = "board_proof";
+            return result;
+        }
     }
     let mut history = history.clone();
     let mut stack = (0..MAX_PLY)
@@ -418,6 +475,7 @@ pub fn analyze(
     result.nodes = engine.nodes;
     result.cutoffs = engine.cutoffs;
     result.table_hits = engine.hits;
+    result.proof_hits = engine.proofs;
     result
 }
 

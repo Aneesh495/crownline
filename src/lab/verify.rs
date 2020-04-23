@@ -327,3 +327,61 @@ pub fn verify_model(ledger: &Path, directory: &Path) -> Result<serde_json::Value
         serde_json::json!({"seed": model.seed, "probes_checked": probes.len(), "data_sha256": model.data_sha256}),
     )
 }
+
+pub fn verify_reference(executable: &Path, directory: &Path) -> Result<serde_json::Value, String> {
+    use super::reference::{self, Game, Manifest};
+    let manifest: Manifest = read_json(&directory.join("reference.json"), 8192)?;
+    let candidates = arena::scheduled(&Split::Test);
+    let identity = file_hash(executable)?;
+    if manifest.comparator_commit != reference::MARCHER_COMMIT
+        || manifest.comparator_sha256 != identity
+        || manifest.pairs == 0
+        || manifest.pairs > candidates.len()
+        || manifest.search_micros != reference::MICROS
+        || manifest.ply_cap != GAME_LIMIT
+    {
+        return Err("reference binary identity or profile mismatch".into());
+    }
+    let games: Vec<Game> = read_lines(&directory.join("matches.jsonl"), 2 * candidates.len())?;
+    if games.len() != 2 * manifest.pairs {
+        return Err("reference arena lost required color-paired games".into());
+    }
+    let mut wins = 0;
+    let mut losses = 0;
+    let mut draws = 0;
+    let mut caps = 0;
+    let mut turns = 0;
+    let mut overrun = [0; 2];
+    for (index, game) in games.iter().enumerate() {
+        let pair = index / 2;
+        if game.pair != pair
+            || game.crownline != Side::ALL[index % 2]
+            || game.opening != candidates[pair]
+            || game.moves.len() > GAME_LIMIT
+        {
+            return Err("reference game not in frozen paired schedule".into());
+        }
+        let mut replay = start(&game.opening)?;
+        for text in &game.moves {
+            if replay.terminal().is_some() {
+                return Err("reference match continued after terminal".into());
+            }
+            replay.apply(text)?;
+            turns += 1;
+        }
+        verify_ending(&replay, game.moves.len(), &game.ending)?;
+        let slot = game.crownline as usize;
+        overrun[0] += game.overruns_2x[slot];
+        overrun[1] += game.overruns_2x[1 - slot];
+        match game.ending.winner {
+            Some(winner) if winner == game.crownline => wins += 1,
+            Some(_) => losses += 1,
+            None => draws += 1,
+        }
+        caps += usize::from(game.ending.reason == Finish::PlyCap);
+    }
+    Ok(
+        serde_json::json!({"wins": wins, "draws_including_caps": draws, "losses": losses,
+        "caps": caps, "turns": turns, "overruns_2x_crownline_marcher": overrun, "games": games.len()}),
+    )
+}

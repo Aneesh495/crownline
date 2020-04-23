@@ -83,13 +83,25 @@ fn run() -> Result<(), String> {
             );
         }
         "wire" => return crownline::wire::serve(args.next().map(Into::into)).map_err(|e| e.to_string()),
-        "search" => {
-            use crownline::{eval::Classical, game::History, search::{analyze, Config, Limits}};
+        "search" | "search-proof" => {
+            use crownline::{eval::Classical, game::History, search::{Config, Limits, Rules, analyze_with_table}};
+            let table = if command == "search-proof" {
+                let directory = args.next().ok_or("search-proof TABLE DEPTH NODES [FEN]")?;
+                Some(tablebase::Tablebase::load(Path::new(&directory))?)
+            } else {
+                None
+            };
             let depth = args.next().ok_or("search DEPTH NODES [FEN]")?.parse::<u8>().map_err(|e| e.to_string())?;
             let nodes = args.next().ok_or("search DEPTH NODES [FEN]")?.parse::<u64>().map_err(|e| e.to_string())?;
-            if nodes > 50_000_000 { return Err("CLI node limit is 50 million".into()); }
+            if nodes > 50_000_000 {
+                return Err("CLI node limit is 50 million".into());
+            }
             let position = args.next().map(|fen| fen.parse()).transpose()?.unwrap_or_else(Position::start);
-            let result = analyze(&History::new(position), &Classical, Limits::fixed(depth, nodes), Config::default());
+            let rules = if table.is_some() { Rules::Board } else { Rules::House };
+            let config = Config { rules, ..Config::default() };
+            let result = analyze_with_table(
+                &History::new(position), &Classical, Limits::fixed(depth, nodes), config, table.as_ref(),
+            );
             println!("{}", serde_json::to_string_pretty(&crownline::wire::result_view(&result)).map_err(|e| e.to_string())?);
         }
         "review" | "pdn" => {
@@ -115,7 +127,7 @@ fn run() -> Result<(), String> {
             let witness = crownline::review::witness(position, &table, 32)?;
             println!("{}", serde_json::to_string_pretty(&witness).map_err(|e| e.to_string())?);
         }
-        _ => return Err("commands: perft, legal, solve, verify-table, explore, verify-frontier, probe, search, pdn, review, witness, wire".into()),
+        _ => return Err("commands: perft, legal, solve, verify-table, explore, verify-frontier, probe, search, search-proof, pdn, review, witness, wire".into()),
     }
     if args.next().is_some() {
         return Err("unexpected extra argument".into());

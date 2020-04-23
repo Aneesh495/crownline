@@ -50,8 +50,11 @@ outcomes. A failed validation check stops promotion. Games remain in the
 ledger regardless of result. A strong reference comparison is a separate
 matched-time experiment. The pinned comparator candidate is
 [Marcher at 1fa785e](https://github.com/Stermere/Checkers-Engine/tree/1fa785edbe8003445163a63f00f04a4c0b77254b).
-Report the exact binary, flags, caps and limitations if the adapter passes
-independent legality checks.
+Use the first 24 test prefixes, both colors, and 4 ms nominal search time.
+Marcher uses its native CPU clock and scalar network with the opening book
+unavailable and tablebase disabled. Crownline uses a wall deadline. Count
+turns over twice the nominal time, apply a 75 ms watchdog, and keep this
+comparison separate from the paired promotion test.
 
 ## Engineering endpoints
 
