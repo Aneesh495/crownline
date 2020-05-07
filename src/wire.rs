@@ -42,6 +42,7 @@ enum Request {
     },
     Analyze {
         fen: Option<String>,
+        pdn: Option<String>,
         millis: u64,
         nodes: u64,
         depth: u8,
@@ -99,7 +100,7 @@ pub fn result_view(result: &search::SearchResult) -> Value {
     json!({
         "best": result.best.map(view_turn), "score": result.score, "pv": result.pv.iter().map(|turn| view_turn(*turn)).collect::<Vec<_>>(),
         "depths": result.depths, "nodes": result.nodes, "cutoffs": result.cutoffs,
-        "table_hits": result.table_hits, "table_bytes": result.table_bytes, "abandoned": result.abandoned, "stop": result.stop,
+        "table_hits": result.table_hits, "proof_hits": result.proof_hits, "table_bytes": result.table_bytes, "abandoned": result.abandoned, "stop": result.stop,
     })
 }
 
@@ -290,14 +291,24 @@ impl Session {
             }
             Request::Analyze {
                 fen,
+                pdn: replay,
                 millis,
                 nodes,
                 depth,
             } if self.local => {
-                let explicit = fen
-                    .map(|text| text.parse())
-                    .transpose()?
-                    .map(crate::game::History::new);
+                let explicit = match (fen, replay) {
+                    (Some(fen), None) => Some(crate::game::History::new(fen.parse()?)),
+                    (None, Some(text)) => {
+                        let record = pdn::import(&text, false).map_err(|e| e.to_string())?;
+                        let mut history = crate::game::History::new(record.start);
+                        for ply in &record.line.plies {
+                            history.push_generated(ply.turn, ply.after);
+                        }
+                        Some(history)
+                    }
+                    (None, None) => None,
+                    _ => return Err("choose either FEN or replay history".into()),
+                };
                 let history = match &explicit {
                     Some(history) => history,
                     None => self.game()?.history(),

@@ -610,7 +610,7 @@ $('witness').addEventListener('click', () => doAnalysis('witness'));
 $('cancel').addEventListener('click', () => {
   analysisController?.abort();
   analysisController = undefined;
-  controls.output.textContent = 'Display cancelled. The native request has a hard deadline.';
+  controls.output.textContent = 'Analysis cancelled.';
 });
 $('import').addEventListener('click', safe(() => importPdn(false)));
 $('import-partial').addEventListener('click', safe(() => importPdn(true)));
