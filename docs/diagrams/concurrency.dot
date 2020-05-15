@@ -1,0 +1,13 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Native process ownership", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  web [label="Node service"];
+  room [label="Serialized bounded room queue"];
+  child [label="Persistent game worker"];
+  study [label="Isolated analysis worker"];
+  cancel [label="Client closes request"];
+  web -> room -> child;
+  web -> study;
+  cancel -> study [label="stop process"];
+}

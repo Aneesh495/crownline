@@ -1,0 +1,13 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Competitive ownership", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  create [label="Black creates room"];
+  invite [label="One-use invite is redeemed"];
+  roles [label="Bound Black/White credentials"];
+  gate [label="Route and actor authorization"];
+  native [label="Authoritative revision"];
+  study [label="Local private study only"];
+  create -> invite -> roles -> gate -> native;
+  gate -> study [label="only local credential"];
+}

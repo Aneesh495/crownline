@@ -1,0 +1,11 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Evidence lineage", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  head [label="Hosted source commit"];
+  clean [label="Clean checkout and locked build"];
+  raw [label="Shards, games, probes, UI observations"];
+  sign [label="Hash inventory + Ed25519 signature"];
+  check [label="Independent replay and negative controls"];
+  head -> clean -> raw -> sign -> check;
+}

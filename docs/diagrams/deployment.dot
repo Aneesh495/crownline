@@ -1,0 +1,12 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Local deployment", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  asset [label="Native release archive"];
+  http [label="run-board starts Node"];
+  loopback [label="Loopback by default"];
+  proxy [label="Optional TLS reverse proxy"];
+  browser [label="Same-origin board and API"];
+  asset -> http -> loopback -> browser;
+  proxy -> http [label="configured origin"];
+}

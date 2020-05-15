@@ -1,0 +1,24 @@
+name: Closed solver campaign
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  prove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - run: rustup toolchain install 1.88.0 --profile minimal --component rustfmt --component clippy
+      - run: |
+          mkdir -p evidence/hosted
+          git rev-parse HEAD > evidence/hosted/source.txt
+          make build
+          target/release/crownline solve evidence/hosted/table 4 > evidence/hosted/build.json
+          target/release/crownline verify-table evidence/hosted/table > evidence/hosted/verified.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: closed-four-piece-${{ github.sha }}
+          path: evidence/hosted/
+          if-no-files-found: error
+          retention-days: 14

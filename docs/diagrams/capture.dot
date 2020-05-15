@@ -1,0 +1,14 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Complete capture route", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  board [label="Bitboard + mover"];
+  origin [label="Remove origin from blockers"];
+  dfs [label="Visit each landing;
+  mark victim"];
+  leaf [label="No legal next jump or man crowned"];
+  commit [label="Publish full Turn;
+  remove all victims"];
+  board -> origin -> dfs -> leaf -> commit;
+  dfs -> dfs [label="Branch or revisit landing"];
+}
