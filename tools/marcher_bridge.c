@@ -10,6 +10,8 @@ int main(void) {
     uint64_t white, black, white_kings, black_kings;
     int player, forced;
     unsigned micros;
+    puts("ready");
+    fflush(stdout);
     while (scanf("%" SCNx64 " %" SCNx64 " %" SCNx64 " %" SCNx64 " %d %d %u",
                  &white, &black, &white_kings, &black_kings,
                  &player, &forced, &micros) == 7) {

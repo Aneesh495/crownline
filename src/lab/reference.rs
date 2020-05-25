@@ -57,12 +57,20 @@ impl Marcher {
                 }
             }
         });
-        Ok(Self {
+        let comparator = Self {
             process,
             input,
             receiver,
             reader: Some(reader),
-        })
+        };
+        let ready = comparator
+            .receiver
+            .recv_timeout(Duration::from_secs(2))
+            .map_err(|error| format!("comparator startup handshake: {error}"))?;
+        if ready.trim_end() != "ready" {
+            return Err("invalid comparator startup handshake".into());
+        }
+        Ok(comparator)
     }
 
     fn step(
