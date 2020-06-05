@@ -186,7 +186,7 @@ function formatClock(ms) {
 }
 
 function renderClocks() {
-  for (const [slot, side] of [['top', flipped ? 'Black' : 'White'], ['bottom', flipped ? 'White' : 'Black']]) {
+  for (const [slot, side] of [['top', flipped ? 'White' : 'Black'], ['bottom', flipped ? 'Black' : 'White']]) {
     const clock = state?.clock;
     const active = !replay && state?.side === side && !state?.outcome && !clock?.paused;
     const elapsed = active && clock ? performance.now() - clockSample : 0;
@@ -373,6 +373,7 @@ async function createGame(mode, options = {}) {
   const config = { mode: mode === 'room' ? 'room' : 'local', policy: mode === 'study' ? 'study' : 'house', ...options };
   const result = await request('/api/session', config);
   session = { ...result, mode };
+  flipped = mode === 'bot' || mode === 'room';
   replay = null;
   record = null;
   state = null;
@@ -627,7 +628,7 @@ async function initialize() {
     const result = await request('/api/session/' + invite[1] + '/join', { invite: invite[2] });
     history.replaceState(null, '', '/');
     session = { ...result, mode: 'room' };
-    flipped = true;
+    flipped = false;
     saveStorage(sessionStorage, 'crownline-session', { id: session.id, token: session.token, role: session.role, mode: 'room' });
     ingest(result.state);
     return;
@@ -637,7 +638,7 @@ async function initialize() {
     try {
       const result = await request(sessionUrl('state', previous), undefined, previous);
       session = previous;
-      flipped = session.role === 'White';
+      flipped = session.role === 'Black' || session.mode === 'bot';
       controls.mode.value = session.mode;
       updateMode();
       ingest(result.state);
