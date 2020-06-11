@@ -34,7 +34,7 @@ with tempfile.TemporaryDirectory(dir=dist) as temporary:
     notices = folder / "third-party-notices"
     notices.mkdir()
     metadata = json.loads(subprocess.check_output([
-        "cargo", "metadata", "--locked", "--offline", "--format-version", "1",
+        "cargo", "metadata", "--locked", "--format-version", "1",
     ], cwd=ROOT, timeout=30))
     rows = []
     for dep in metadata["packages"]:
