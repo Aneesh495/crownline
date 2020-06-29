@@ -2,9 +2,15 @@
 
 An original English draughts engine, browser board and endgame laboratory.
 
+[Preview downloads and signed evidence](https://github.com/Aneesh495/crownline/releases/tag/v0.1.0-preview)
+· [Measured results](docs/RESULTS.md)
+
 ![Crownline reviewing a branching capture and a four-piece draw](docs/images/board-review.png)
 
 ## Play and review
+
+Extract a macOS arm64 or Linux x86-64 release archive and run
+`./run-board` with Node 24. The source build commands are below.
 
 Use Rust 1.88.0 and Node 24.21.0. Python 3.11 or newer, OpenSSL 3 and
 Graphviz support the experiment and release tools.
@@ -25,8 +31,8 @@ heuristic findings.
 
 The Rust core uses 32-square bitboards and complete capture routes.
 Conservative PVS searches reversible history with bounded budgets.
-The original four-piece proof uses reverse edges and a decreasing
-witness rank. A separate coordinate-array generator verifies the
+The original four-piece proof covers 7,361,090 canonical positions and
+uses reverse edges and a decreasing witness rank. A separate coordinate-array generator verifies the
 closed graph. Original self-play supplies the linear, sparse network
 and blended experiments.
 
