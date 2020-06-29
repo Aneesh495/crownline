@@ -26,3 +26,19 @@ requires 40 previous turns per player with neither a man's advance nor
 any capture. These claims require replay history. A position by itself
 starts a new history. A board-only solver treats infinite play as a draw
 and does not encode tournament claims or clocks.
+
+PDN archives use token-aware game boundaries and an 8 MiB input cap.
+The archive reader keeps comments after a result with that record and
+reports nested-variation and empty-archive errors. Individual records retain
+the existing 256 KiB and 6,000-turn limits.
+
+The optional tag \`[CaptureNotation "LegacyDash"]\` enables older English
+records that use hyphens for captures. Every route still resolves against
+the legal full-turn set. Ambiguous endpoints require the complete path.
+Canonical output writes capture routes with \`x\`. Standard imports use the
+standard capture delimiter unless the record declares this dialect.
+
+Both PDN result families are accepted. The values \`2-0\`, \`0-2\` and
+\`1-1\` retain their original spelling through export. The existing
+\`ResultOrder\` tag determines whether the first score belongs to Black or
+White. A result that contradicts a terminal board produces a diagnostic.

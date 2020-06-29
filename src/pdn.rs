@@ -66,7 +66,7 @@ struct Lexer<'a> {
     cursor: usize,
 }
 
-const RESULTS: [&str; 5] = ["1/2-1/2", "1-0", "0-1", "0-0", "*"];
+const RESULTS: [&str; 8] = ["1/2-1/2", "1-0", "0-1", "0-0", "2-0", "0-2", "1-1", "*"];
 
 impl<'a> Lexer<'a> {
     fn rest(&self) -> &'a str {
@@ -238,6 +238,7 @@ struct Parser<'a> {
     lexer: Lexer<'a>,
     pending: Option<(usize, Token<'a>)>,
     turns: usize,
+    legacy_dash: bool,
 }
 
 impl<'a> Parser<'a> {
@@ -273,6 +274,16 @@ impl<'a> Parser<'a> {
                     if self.turns > 6000 {
                         return Err(error("game and variations exceed 6000 turns"));
                     }
+                    let text = if self.legacy_dash
+                        && !text.contains(['x', 'X'])
+                        && crate::moves::legal(position)
+                            .first()
+                            .is_some_and(|turn| turn.is_capture())
+                    {
+                        text.replace('-', "x")
+                    } else {
+                        text
+                    };
                     let turn = resolve_turn(position, &text)
                         .map_err(|message| Diagnostic { offset, message })?;
                     let mut after = position;
@@ -348,6 +359,7 @@ pub fn import(input: &str, partial: bool) -> Result<Record, Diagnostic> {
         lexer: Lexer { input, cursor: 0 },
         pending: None,
         turns: 0,
+        legacy_dash: false,
     };
     let mut record = Record {
         start: Position::start(),
@@ -372,6 +384,13 @@ pub fn import(input: &str, partial: bool) -> Result<Record, Diagnostic> {
                             return Err(error(format!("unsupported GameType {value}")));
                         }
                         "FEN" => record.start = value.parse().map_err(error)?,
+                        "CaptureNotation" => {
+                            parser.legacy_dash = match value.as_str() {
+                                "Standard" => false,
+                                "LegacyDash" => true,
+                                _ => return Err(error("unsupported CaptureNotation tag".into())),
+                            };
+                        }
                         "Result" if !RESULTS.contains(&value.as_str()) => {
                             return Err(error("unsupported Result tag".into()));
                         }
@@ -419,16 +438,19 @@ pub fn import(input: &str, partial: bool) -> Result<Record, Diagnostic> {
                 .tags
                 .iter()
                 .any(|(key, value)| key == "ResultOrder" && value == "BlackFirst");
-            if matches!(result, "1-0" | "0-1" | "1/2-1/2")
-                && outcome.winner.is_some_and(|winner| {
-                    let first = if black_first {
-                        Side::Black
-                    } else {
-                        Side::White
-                    };
-                    result != if winner == first { "1-0" } else { "0-1" }
-                })
-            {
+            if outcome.winner.is_some_and(|winner| {
+                let first = if black_first {
+                    Side::Black
+                } else {
+                    Side::White
+                };
+                match result {
+                    "1-0" | "2-0" => winner != first,
+                    "0-1" | "0-2" => winner == first,
+                    "1/2-1/2" | "1-1" => true,
+                    _ => false,
+                }
+            }) {
                 return Err(parser.lexer.error("result conflicts with terminal board. Check ResultOrder for older English PDN."));
             }
         }
@@ -525,4 +547,63 @@ pub fn completed(
         sha256: String::new(),
         diagnostic: None,
     })
+}
+
+/// Byte ranges of complete records in a bounded archive, including trailing comments.
+pub fn archive_ranges(input: &str) -> Result<Vec<std::ops::Range<usize>>, Diagnostic> {
+    if input.len() > 8 * 1024 * 1024 || input.contains('\0') {
+        return Err(Diagnostic {
+            offset: 0,
+            message: "PDN archive exceeds 8 MiB or contains NUL".into(),
+        });
+    }
+    let mut lexer = Lexer { input, cursor: 0 };
+    let mut spans = Vec::new();
+    let mut start = 0;
+    let mut depth = 0usize;
+    let mut completed = false;
+    let mut has_tokens = false;
+    while let Some((offset, token)) = lexer.next()? {
+        if completed && !matches!(token, Token::Comment(_)) {
+            if spans.len() >= 4095 {
+                return Err(Diagnostic {
+                    offset,
+                    message: "PDN archive exceeds 4096 records".into(),
+                });
+            }
+            spans.push(start..offset);
+            start = offset;
+            completed = false;
+        }
+        has_tokens = true;
+        match token {
+            Token::Open => {
+                depth += 1;
+                if depth > 24 {
+                    return Err(Diagnostic {
+                        offset,
+                        message: "variation nesting exceeds 24".into(),
+                    });
+                }
+            }
+            Token::Close => {
+                depth = depth.checked_sub(1).ok_or_else(|| Diagnostic {
+                    offset,
+                    message: "unmatched variation boundary".into(),
+                })?;
+            }
+            Token::Result(_) if depth == 0 => completed = true,
+            _ => {}
+        }
+    }
+    if has_tokens {
+        spans.push(start..input.len());
+    }
+    if spans.is_empty() {
+        return Err(Diagnostic {
+            offset: 0,
+            message: "empty PDN archive".into(),
+        });
+    }
+    Ok(spans)
 }
