@@ -231,6 +231,8 @@ pub fn play(
         },
     ))
 }
+pub mod historical;
 pub mod reference;
 pub mod tactics;
 pub mod verify;
+pub mod verify_historical;

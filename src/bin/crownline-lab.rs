@@ -32,6 +32,15 @@ fn number<T: std::str::FromStr>(text: &str) -> Result<T, String> {
 fn run(args: &[String]) -> Result<(), String> {
     let args = args.iter().map(String::as_str).collect::<Vec<_>>();
     match args.as_slice() {
+        ["verify-historical", manifest, sources, training, models, directory] => show(crownline::lab::verify_historical::verify(
+            Path::new(manifest), Path::new(sources), Path::new(training), Path::new(models), Path::new(directory))?),
+        ["historical", manifest, sources, training, models, directory] => {
+            let report = crownline::lab::historical::run(Path::new(manifest), Path::new(sources), Path::new(training), Path::new(models), Path::new(directory))?;
+            let rejected = report.rejected_games;
+            show(report)?;
+            if rejected > 0 { return Err(format!("{rejected} historical records failed replay")); }
+            Ok(())
+        }
         ["tactics"] => show(crownline::lab::tactics::run()?),
         ["openings"] => show(crownline::lab::openings()),
         ["selfplay", directory, games] => show(selfplay::generate(Path::new(directory), number(games)?)?),
@@ -56,7 +65,7 @@ fn run(args: &[String]) -> Result<(), String> {
         ["verify-arena", model, directory] => show(verify::verify_arena(Path::new(model), Path::new(directory))?),
         ["verify-data", data] => show(verify::verify_dataset(Path::new(data))?),
         ["verify-model", data, model] => show(verify::verify_model(Path::new(data), Path::new(model))?),
-        _ => Err("commands: openings | selfplay DIR GAMES | train DATA DIR SEED EPOCHS FRACTION | arena MODEL DIR KIND PROFILE SPLIT PAIRS | verify-arena MODEL DIR | verify-data DATA | verify-model DATA DIR".into()),
+        _ => Err("commands: historical MANIFEST SOURCES TRAINING MODELS OUTPUT | verify-historical MANIFEST SOURCES TRAINING MODELS OUTPUT | openings | selfplay DIR GAMES | train DATA DIR SEED EPOCHS FRACTION | arena MODEL DIR KIND PROFILE SPLIT PAIRS | verify-arena MODEL DIR | verify-data DATA | verify-model DATA DIR".into()),
     }
 }
 

@@ -75,3 +75,25 @@ under 500 MB generated evidence and under 5 GB total attributable local disk.
 Abort when the project reaches 5,000,000,000 bytes or the Mac APFS container
 reaches 400,000,000,000 bytes. Use atomic shard, game and epoch files as
 checkpoint boundaries. Keep the raw diagnostic and clean source identities.
+
+## Historical holdout supplement v1
+
+The immutable manifest in [historical-v1.json](../config/historical-v1.json)
+pins two official WCDF GAYP archives with 62 and 112 records. All records
+are attempted in source order. Rejected records retain their source offset
+and diagnostic. A rejected source record makes the command return nonzero
+after writing its observations.
+
+The three models are frozen at their preview source identities. Sample
+positions before plies 16, 32, 48 and 64. Remove every canonical board
+visited in the original self-play stream and repeated historical boards.
+Keep the original held-out openings and models fixed. Teacher targets
+come from the original classical evaluator with 4,096 nodes, depth at most
+12 and a 512-entry table. Report classical, linear, network and blend
+RMSE for each seed. These are teacher-imitation measurements.
+
+All recorded moves receive legal replay. Historical declared results are
+retained as source data. They do not label model training or choose a
+model. Sources use the declared capture and score conventions in the
+manifest. Preserve raw downloads locally with hashes and publish the
+acquisition recipe with the derived observations.

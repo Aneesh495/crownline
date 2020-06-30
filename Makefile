@@ -15,8 +15,11 @@ BUDGET ?= nodes768
 VARIANT ?= blend
 PROFILE ?= diagnostic
 RELEASE_VERSION ?= 0.1.0-preview
+HISTORICAL_SOURCES ?= evidence/historical-sources
+HISTORICAL_MODELS ?= evidence/preview-final
+HISTORICAL_RUN ?= evidence/historical-evaluation
 
-.PHONY: bootstrap doctor build test perft data selfplay train solve arena review-demo demo bench stress docs acceptance verify release ci
+.PHONY: historical-data historical bootstrap doctor build test perft data selfplay train solve arena review-demo demo bench stress docs acceptance verify release ci
 
 bootstrap:
 	cargo fetch --locked
@@ -29,7 +32,7 @@ build:
 
 test: build
 	cargo test --locked --release
-	node --test web/tests/session.test.mjs
+	node --test web/tests/*.test.mjs
 
 perft: build
 	$(ENGINE) perft 8
@@ -49,6 +52,13 @@ solve: build
 arena: build
 	$(LAB) arena "$(MODEL)" "$(ARENA_DIR)" "$(VARIANT)" "$(BUDGET)" test "$(PAIRS)"
 	$(LAB) verify-arena "$(MODEL)" "$(ARENA_DIR)"
+
+historical-data:
+	python3 tools/acquire_historical.py "$(HISTORICAL_SOURCES)"
+
+historical: build historical-data
+	$(LAB) historical config/historical-v1.json "$(HISTORICAL_SOURCES)" "$(HISTORICAL_MODELS)/data/selfplay.jsonl" "$(HISTORICAL_MODELS)" "$(HISTORICAL_RUN)"
+	$(LAB) verify-historical config/historical-v1.json "$(HISTORICAL_SOURCES)" "$(HISTORICAL_MODELS)/data/selfplay.jsonl" "$(HISTORICAL_MODELS)" "$(HISTORICAL_RUN)"
 
 review-demo: solve
 	$(ENGINE) review examples/branch-study.pdn "$(SOLVE_DIR)"

@@ -1,0 +1,33 @@
+{
+  "schema": "crownline-historical-v1",
+  "model_source_commit": "c155a4c65650fdb4037bbad73375d5e797a6c5a5",
+  "training_sha256": "5dccd4b5ca56c07f846e26f6ddbdf93fb9ec33f1596e5a2d033aaeda56c911d8",
+  "teacher_nodes": 4096,
+  "teacher_depth": 12,
+  "sample_plies": [16, 32, 48, 64],
+  "sources": [
+    {
+      "file": "wcdf-2007.pdn",
+      "url": "https://wcdf.net/games/WCDF%202007%20GAYP.pdn",
+      "sha256": "b5538a063c7639c15ab7ad2ac981dfd4779d2b386ca84f7dc821a7ff5059cc2a",
+      "bytes": 30051,
+      "records": 62,
+      "capture_notation": "LegacyDash",
+      "result_order": "BlackFirst"
+    },
+    {
+      "file": "wcdf-2011.pdn",
+      "url": "https://wcdf.net/games/WCDF%202011%20GAYP.pdn",
+      "sha256": "5398fb3beb62354b617153c2d185f8649cbdea2623b77d52dbc20388fbe5a567",
+      "bytes": 66465,
+      "records": 112,
+      "capture_notation": "Standard",
+      "result_order": "BlackFirst"
+    }
+  ],
+  "models": [
+    {"seed": 101, "sha256": "d15b623440560b597dd4b6c8afae713c5ef087f79ae660ea45fedc1f3c2ebf47"},
+    {"seed": 211, "sha256": "d4a830d657ed5f470aef7ff3543bdbfb5a33e6eaeb03e8240f1e9a37957f9c62"},
+    {"seed": 307, "sha256": "e2e70eda553c7c6df93c8574bfe098dc6b58cd371820da1cc01a9b04d9b39315"}
+  ]
+}
