@@ -251,7 +251,10 @@ function renderGame() {
   $('rematch').disabled = !state?.outcome || pending;
   $('invitation').hidden = !session?.invite || Boolean(state);
   $('invite-link').value = session?.invite ? location.origin + '/#join=' + session.id + '.' + session.invite : '';
-  for (const button of document.querySelectorAll('.tab[data-panel=analysis], .tab[data-panel=record]')) button.disabled = Boolean(remote());
+  document.querySelector('.tab[data-panel=analysis]').disabled = Boolean(remote());
+  document.querySelector('.tab[data-panel=record]').disabled = Boolean(remote() && !state?.outcome);
+  for (const id of ['import', 'import-partial', 'review']) $(id).disabled = Boolean(remote());
+  controls.pdn.readOnly = Boolean(remote());
   renderTurns();
   renderBoard();
   renderClocks();
@@ -350,7 +353,7 @@ async function choose(square) {
 }
 
 function setPanel(panel) {
-  if (panel !== 'game' && remote()) return;
+  if (remote() && panel !== 'game' && !(panel === 'record' && state?.outcome)) return;
   for (const button of document.querySelectorAll('.tab')) {
     const active = button.dataset.panel === panel;
     button.classList.toggle('active', active);

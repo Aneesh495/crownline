@@ -385,3 +385,66 @@ pub fn verify_reference(executable: &Path, directory: &Path) -> Result<serde_jso
         "caps": caps, "turns": turns, "overruns_2x_crownline_marcher": overrun, "games": games.len()}),
     )
 }
+
+pub fn verify_playthroughs(path: &Path) -> Result<serde_json::Value, String> {
+    use serde::Deserialize;
+
+    #[derive(Deserialize)]
+    struct Playthrough {
+        mode: String,
+        turns: usize,
+        outcome: Ending,
+        pdn: String,
+    }
+
+    let records: Vec<Playthrough> = read_lines(path, 44)?;
+    let mut expected = std::collections::HashSet::new();
+    for clock in ["unclocked", "180000", "300000", "900000"] {
+        for kind in ["invite room", "local players"] {
+            expected.insert(format!("{kind} {clock}"));
+        }
+    }
+    for level in ["quick", "club", "deep"] {
+        for side in ["Black", "White", "both"] {
+            for clock in ["unclocked", "180000+2000", "300000+3000", "900000+10000"] {
+                expected.insert(format!("{level}, engine {side}, {clock}"));
+            }
+        }
+    }
+    if records.len() != expected.len() {
+        return Err("complete-game matrix is missing required sessions".into());
+    }
+    let mut turns = 0;
+    for record in records {
+        if !expected.remove(&record.mode) {
+            return Err("duplicate or unknown complete-game session".into());
+        }
+        let imported = crate::pdn::import(&record.pdn, false).map_err(|e| e.to_string())?;
+        if imported.start != Position::start()
+            || imported.line.plies.len() != record.turns
+            || record.turns < 4
+        {
+            return Err("complete-game recorded workload mismatch".into());
+        }
+        let mut replay = Replay::start();
+        for played in imported.line.plies {
+            if replay.terminal().is_some() {
+                return Err("complete-game session continued past its result".into());
+            }
+            replay.apply(&played.turn.to_string())?;
+            turns += 1;
+        }
+        verify_ending(&replay, record.turns, &record.outcome)?;
+        let expected_result = match record.outcome.winner {
+            Some(Side::White) => "1-0",
+            Some(Side::Black) => "0-1",
+            None => "1/2-1/2",
+        };
+        if imported.result != expected_result {
+            return Err("complete-game exported result mismatch".into());
+        }
+    }
+    Ok(
+        serde_json::json!({"sessions": 44, "turns_replayed": turns, "unresolved_sessions": expected.len()}),
+    )
+}

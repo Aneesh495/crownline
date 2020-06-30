@@ -148,6 +148,18 @@ try {
   await until(() => evaluate('document.querySelector("#status").textContent === "Black wins"'), 'return-to-origin capture');
   observations.push({ full_capture: '14x7x16x23x14', intermediate_turns: 0, outcome: 'Black wins' });
 
+  await evaluate('document.querySelector("#mode").value = "local"; document.querySelector("#new-fen").value = "";');
+  await click('#new-game button[type=submit]');
+  await until(() => evaluate('document.querySelector("#revision").textContent === "0 ply" && document.querySelectorAll(".piece").length === 24'), 'complete-game start');
+  const completed = JSON.parse(await readFile(new URL('./fixtures/completed-game.json', import.meta.url), 'utf8'));
+  for (const [ply, turn] of completed.turns.entries()) {
+    for (const square of turn.split(/[-x]/)) await click('[data-square="' + square + '"]');
+    await until(() => evaluate('document.querySelector("#revision").textContent === ' + JSON.stringify((ply + 1) + ' ply')), 'complete-game turn ' + (ply + 1));
+  }
+  assert.equal(await evaluate('document.querySelector("#status").textContent'), 'White wins');
+  await shot('completed-game.png');
+  observations.push({ full_game_turns: completed.turns.length, outcome: completed.outcome, source_game: completed.game_id });
+
   await click('[data-panel=analysis]');
   await click('#analyze');
   await click('#cancel');

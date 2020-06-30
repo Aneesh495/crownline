@@ -63,6 +63,7 @@ fn run(args: &[String]) -> Result<(), String> {
         )?),
         ["verify-reference", engine, directory] => show(verify::verify_reference(Path::new(engine), Path::new(directory))?),
         ["verify-arena", model, directory] => show(verify::verify_arena(Path::new(model), Path::new(directory))?),
+        ["verify-playthroughs", data] => show(verify::verify_playthroughs(Path::new(data))?),
         ["verify-data", data] => show(verify::verify_dataset(Path::new(data))?),
         ["verify-model", data, model] => show(verify::verify_model(Path::new(data), Path::new(model))?),
         _ => Err("commands: historical MANIFEST SOURCES TRAINING MODELS OUTPUT | verify-historical MANIFEST SOURCES TRAINING MODELS OUTPUT | openings | selfplay DIR GAMES | train DATA DIR SEED EPOCHS FRACTION | arena MODEL DIR KIND PROFILE SPLIT PAIRS | verify-arena MODEL DIR | verify-data DATA | verify-model DATA DIR".into()),

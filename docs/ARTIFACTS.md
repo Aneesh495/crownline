@@ -27,3 +27,14 @@ reason, nodes and elapsed microseconds. Termination codes distinguish rule
 draws, caps, technical losses and decisive board outcomes. Evaluation scores
 use hundredths of a man, while terminal search scores and board-only proof
 sentinels sit outside the heuristic range.
+
+Completed room snapshots expose canonical PDN to authenticated participants.
+The record becomes available after a terminal game event. A local session
+can use the import and analysis commands. Competitive sessions retain
+their route authorization after completion.
+
+The complete-game JSONL artifact contains one row per planned session.
+Each includes scenario metadata and the full canonical PDN. The native
+\`verify-playthroughs\` command checks matrix completeness, all moves,
+the final board and history-sensitive house draws.
+[Complete-game coverage](PLAYTHROUGHS.md)

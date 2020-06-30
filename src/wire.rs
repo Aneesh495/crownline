@@ -140,7 +140,7 @@ impl Session {
         let game = self.game.as_ref().ok_or("session has no game")?;
         let position = game.position();
         let turns = game.turns().collect::<Vec<_>>();
-        let pdn = if self.local {
+        let pdn = if self.local || game.outcome().is_some() {
             Some(pdn::export(&pdn::completed(
                 self.start,
                 turns.iter().copied(),
