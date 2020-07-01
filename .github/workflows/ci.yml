@@ -16,7 +16,13 @@ jobs:
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: '24.21.0'
-      - run: sudo apt-get update && sudo apt-get install -y graphviz
+      - name: Ensure Graphviz is available
+        timeout-minutes: 3
+        run: |
+          if ! command -v dot >/dev/null; then
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 update
+            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 install -y graphviz
+          fi
       - run: rustup toolchain install 1.88.0 --profile minimal --component rustfmt --component clippy
       - run: make ci
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

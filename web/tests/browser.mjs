@@ -160,6 +160,13 @@ try {
   await shot('completed-game.png');
   observations.push({ full_game_turns: completed.turns.length, outcome: completed.outcome, source_game: completed.game_id });
 
+  await evaluate('document.querySelector("#mode").value = "study"; document.querySelector("#new-fen").value = "";');
+  await click('#new-game button[type=submit]');
+  await until(() => evaluate('document.querySelector("#revision").textContent === "0 ply" && document.querySelectorAll(".piece").length === 24'), 'drag-game start');
+  assert.equal(await evaluate('(() => { const transfer = new DataTransfer(); const source = document.querySelector("[data-square=\\\"9\\\"] .piece"); const target = document.querySelector("[data-square=\\\"13\\\"]"); source.dispatchEvent(new DragEvent("dragstart", { bubbles: true, cancelable: true, dataTransfer: transfer })); const drop = new DragEvent("drop", { bubbles: true, cancelable: true, dataTransfer: transfer }); target.dispatchEvent(drop); return drop.defaultPrevented; })()'), true);
+  await until(() => evaluate('document.querySelector("#revision").textContent === "1 ply"'), 'drag turn');
+  observations.push({ drag_move: '9-13', drop_default_prevented: true });
+
   await click('[data-panel=analysis]');
   await click('#analyze');
   await click('#cancel');
@@ -169,6 +176,12 @@ try {
   await writeFile(join(output, 'browser-observations.json'), JSON.stringify(observations, null, 2) + '\n');
   console.log(JSON.stringify(observations, null, 2));
 } catch (error) {
+  if (ws?.readyState === WebSocket.OPEN) {
+    const failure = await evaluate('({status: document.querySelector("#status")?.textContent, notice: document.querySelector("#notice")?.textContent, revision: document.querySelector("#revision")?.textContent, pieces: document.querySelectorAll(".piece").length, fen: document.querySelector("#new-fen")?.value, mode: document.querySelector("#mode")?.value})').catch(() => null);
+    await writeFile(join(output, 'failure.json'), JSON.stringify(failure, null, 2));
+    await shot('failure.png').catch(() => {});
+    console.error(JSON.stringify(failure));
+  }
   if (chromeError) console.error(chromeError);
   throw error;
 } finally {

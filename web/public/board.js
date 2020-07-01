@@ -68,7 +68,13 @@ function error(message) {
 }
 
 function safe(task) {
-  return (...args) => Promise.resolve().then(() => task(...args)).catch(problem => error(problem.message));
+  return (...args) => {
+    try {
+      return Promise.resolve(task(...args)).catch(problem => error(problem.message));
+    } catch (problem) {
+      error(problem.message);
+    }
+  };
 }
 
 function pieceMap(fen) {
