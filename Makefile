@@ -14,7 +14,7 @@ PAIRS ?= 12
 BUDGET ?= nodes768
 VARIANT ?= blend
 PROFILE ?= diagnostic
-RELEASE_VERSION ?= 0.1.0-preview
+RELEASE_VERSION ?= 0.1.1-preview
 HISTORICAL_SOURCES ?= evidence/historical-sources
 HISTORICAL_MODELS ?= evidence/preview-final
 HISTORICAL_RUN ?= evidence/historical-evaluation
@@ -83,7 +83,7 @@ acceptance:
 
 verify: build
 	@test -n "$(EVIDENCE)" || { echo 'Set EVIDENCE to a bundle directory' >&2; exit 2; }
-	python3 tools/verify_campaign.py "$(EVIDENCE)" $(if $(EXPECTED_COMMIT),--expected "$(EXPECTED_COMMIT)",) $(if $(filter 1,$(INTEGRITY_ONLY)),--integrity-only,)
+	python3 tools/verify_campaign.py "$(EVIDENCE)" $(if $(EXPECTED_COMMIT),--expected "$(EXPECTED_COMMIT)",) $(if $(filter 1,$(INTEGRITY_ONLY)),--integrity-only,) --historical-sources "$(HISTORICAL_SOURCES)"
 
 release: build docs
 	python3 tools/package_release.py "$(RELEASE_VERSION)"

@@ -2,7 +2,7 @@
 
 An original English draughts engine, browser board and endgame laboratory.
 
-[Preview downloads and signed evidence](https://github.com/Aneesh495/crownline/releases/tag/v0.1.0-preview)
+[Preview downloads and signed evidence](https://github.com/Aneesh495/crownline/releases)
 · [Measured results](docs/RESULTS.md)
 
 ![Crownline reviewing a branching capture and a four-piece draw](docs/images/board-review.png)
@@ -40,6 +40,8 @@ and blended experiments.
 [Rules matrix](docs/RULES_MATRIX.md) ·
 [Reproduction](docs/REPRODUCIBILITY.md) ·
 [Experiment plan](docs/EXPERIMENT_PLAN.md) ·
+[Historical holdout](docs/HISTORICAL.md) ·
+[Complete games](docs/PLAYTHROUGHS.md) ·
 [Build status](docs/BUILD_STATUS.md)
 
 The preview uses the classical evaluator. The closed proof uses

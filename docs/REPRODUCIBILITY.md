@@ -35,3 +35,15 @@ Set \`CROWNLINE_HOST\` and \`CROWNLINE_ORIGIN\` to the intended listener and
 exact public origin. Forward the original Host header. The room API stores
 only digests of secrets and keeps state in memory. Keep the invite out of
 public logs. Rooms disappear after service restart.
+
+The current source also verifies the pinned WCDF holdout and 44 complete
+game sessions. Run the following commands from the tag named in the
+bundle's source manifest. Historical source bytes are acquired separately
+and checked against the recorded hashes.
+
+    make historical-data
+    make verify EVIDENCE=/path/to/crownline-evidence INTEGRITY_ONLY=1
+
+The three new semantic controls alter a historical teacher target, a
+reported model error and a completed-game winner, then re-sign each
+altered bundle before invoking the same independent verifier.

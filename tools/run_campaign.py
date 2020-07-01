@@ -11,6 +11,7 @@ import shutil
 import subprocess
 import sys
 import time
+import tomllib
 
 from evidence_common import (
     FRONTIER_FEN, MODEL_SEEDS, ROOT, VARIANTS, WITNESS_FEN, command, digest, lines, load, save, seal,
@@ -45,6 +46,7 @@ class Campaign:
             "--remap-path-prefix", str(Path.home()) + "=/build-home",
         ])
         env.pop("CARGO_TARGET_DIR", None)
+        env["CROWNLINE_PLAYTHROUGH_LEDGER"] = str(self.output / "playthroughs.jsonl")
         with stdout.open("xb") as out, stderr.open("xb") as err:
             try:
                 run = subprocess.run(args, stdout=out, stderr=err, cwd=self.source, timeout=timeout, env=env)
@@ -88,7 +90,7 @@ def controls(campaign, key, commit, bin_dir, full):
     temp.mkdir()
     cases = ["winner", "route", "model", "corruption", "missing", "source", "failed_replay"]
     if full:
-        cases.append("frontier")
+        cases.extend(["frontier", "historical-target", "historical-score", "completed-winner"])
     records = []
     for case in cases:
         directory = temp / case
@@ -102,8 +104,33 @@ def controls(campaign, key, commit, bin_dir, full):
             "source": "signed evidence source identity mismatch",
             "failed_replay": "recorded winner or result",
             "frontier": "independently replayed frontier",
+            "historical-target": "historical teacher target replay mismatch",
+            "historical-score": "historical learned RMSE mismatch",
+            "completed-winner": "recorded winner or result",
         }[case]
-        if case == "model":
+        if case in {"historical-target", "historical-score"}:
+            shutil.copy2(output / "data/selfplay.jsonl", directory / "data.jsonl")
+            for seed in MODEL_SEEDS:
+                model_dir = directory / f"seed-{seed}"
+                model_dir.mkdir()
+                shutil.copy2(output / f"seed-{seed}/model.json", model_dir / "model.json")
+            shutil.copytree(output / "historical", directory / "historical")
+            shutil.copytree(campaign.source.parent / "historical-sources", directory / "sources")
+            if case == "historical-target":
+                path = directory / "historical/probes.json"
+                rows = load(path)
+                rows[0]["teacher"] += 1
+                save(path, rows)
+            else:
+                path = directory / "historical/report.json"
+                report = load(path)
+                report["models"][0]["linear_rmse"] += 1
+                save(path, report)
+        elif case == "completed-winner":
+            rows = list(lines(output / "playthroughs.jsonl"))
+            rows[0]["outcome"]["winner"] = "Black"
+            (directory / "playthroughs.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+        elif case == "model":
             shutil.copy2(output / "data/selfplay.jsonl", directory / "data.jsonl")
             shutil.copytree(output / "seed-101", directory / "model")
             model_path = directory / "model/model.json"
@@ -184,15 +211,17 @@ def execute(options):
     })
     runner.run("build", ["cargo", "build", "--locked", "--release"], timeout=300)
     runner.run("tests", ["cargo", "test", "--release", "--locked", "--", "--nocapture"], timeout=300)
-    runner.run("api", ["node", "--test", "web/tests/session.test.mjs"])
+    runner.run("api", ["node", "--test", "web/tests/session.test.mjs", "web/tests/full-games.test.mjs"])
     runner.run("verifier-smoke", [sys.executable, "tools/smoke_verifier.py"])
-    runner.run("package", [sys.executable, "tools/package_release.py", "0.1.0-preview"])
-    package = source / "dist" / f"crownline-0.1.0-preview-{platform.system().lower()}-{platform.machine()}.tar.gz"
+    version = tomllib.loads((source / "Cargo.toml").read_text())["package"]["version"] + "-preview"
+    runner.run("package", [sys.executable, "tools/package_release.py", version])
+    package = source / "dist" / f"crownline-{version}-{platform.system().lower()}-{platform.machine()}.tar.gz"
     runner.run("package-replay", [sys.executable, "tools/test_package.py", package])
     save(output / "PACKAGE.json", {"file": package.name, "sha256": digest(package), "bytes": package.stat().st_size})
     bin_dir = source / "target/release"
     binary = bin_dir / "crownline"
     lab = bin_dir / "crownline-lab"
+    runner.run("verify-playthroughs", [lab, "verify-playthroughs", output / "playthroughs.jsonl"], "playthrough-verify.json")
     identities = output / "identities"
     identities.mkdir()
     shutil.copy2(binary, identities / "crownline")
@@ -233,6 +262,14 @@ def execute(options):
         path = output / f"seed-{seed}"
         runner.run(f"train-{seed}", [lab, "train", ledger, path, seed, 8 if full else 3, 100])
         runner.run(f"verify-model-{seed}", [lab, "verify-model", ledger, path])
+    historical_sources = stage / "historical-sources"
+    if full:
+        runner.run("historical-acquire", [sys.executable, "tools/acquire_historical.py", historical_sources])
+        datasets = load(output / "DATASETS.json")
+        datasets["historical"] = load(source / "config/historical-v1.json")["sources"]
+        save(output / "DATASETS.json", datasets)
+        runner.run("historical", [lab, "historical", "config/historical-v1.json", historical_sources, ledger, output, output / "historical"])
+        runner.run("historical-verify", [lab, "verify-historical", "config/historical-v1.json", historical_sources, ledger, output, output / "historical"], "historical-verify.json")
     (output / "arena").mkdir()
 
     def arena(name, seed, variant, budget, split, pairs):
@@ -274,17 +311,18 @@ def execute(options):
         primary = paired_metrics(output / "arena/101-blend-nodes768/matches.jsonl")
         promotion = paired_metrics(output / "arena/promotion/matches.jsonl")
         gates["G11"] = "passed" if primary["promotion_eligible"] and promotion["promotion_eligible"] and strong_ok else "failed"
-        gates["G12"] = "unverified" if browser_ok else "blocked"
+        gates["G09"] = "passed"
+        gates["G12"] = "passed" if browser_ok else "blocked"
     save(output / "ACCEPTANCE.json", {
         "profile": options.profile, "status": "incomplete" if full else "diagnostic",
         "gates": gates, "strong_reference_replayed": strong_ok, "browser_replayed": browser_ok,
-        "limitations": ["external tournament training holdout absent", "full product acceptance outstanding"],
+        "limitations": ["learned promotion did not qualify", "full product acceptance outstanding"],
     })
     seal(output, key, options.profile, commit)
     verify = subprocess.run([
         sys.executable, str(source / "tools/verify_campaign.py"), str(output),
         "--checkout", str(source), "--expected", commit, "--binary-dir", str(bin_dir),
-        "--integrity-only",
+        "--integrity-only", *([] if not full else ["--historical-sources", str(historical_sources)]),
     ], check=True, cwd=source)
     if verify.returncode:
         return verify.returncode

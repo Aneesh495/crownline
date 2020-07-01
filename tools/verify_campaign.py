@@ -82,6 +82,11 @@ def arena_check(lab, model, directory, expected_pairs):
 
 
 def verify_case(directory, case, binary, lab):
+    if case in {"historical-target", "historical-score"}:
+        return replay(lab, "verify-historical", ROOT / "config/historical-v1.json", directory / "sources",
+                      directory / "data.jsonl", directory, directory / "historical")
+    if case == "completed-winner":
+        return replay(lab, "verify-playthroughs", directory / "playthroughs.jsonl")
     if case in {"winner", "route", "corruption", "missing", "failed_replay"}:
         return replay(lab, "verify-arena", directory / "model.json", directory / "arena")
     if case == "frontier":
@@ -91,7 +96,7 @@ def verify_case(directory, case, binary, lab):
     raise ValueError(f"unrecognized verification case {case}")
 
 
-def verify(directory, checkout, commit, binary, lab, integrity_only):
+def verify(directory, checkout, commit, binary, lab, integrity_only, historical_sources):
     manifest = check_seal(directory, commit, checkout / "config/evidence-ed25519.pub")
     source = load(directory / "SOURCE_INPUTS.json")
     if source["commit"] != commit or source["files"] != source_inventory(checkout):
@@ -130,6 +135,24 @@ def verify(directory, checkout, commit, binary, lab, integrity_only):
     counts = replay(lab, "verify-data", data)
     if counts["games"] != (384 if manifest["profile"] == "full" else 96):
         raise ValueError("self-play workload differs")
+    playthroughs = replay(lab, "verify-playthroughs", directory / "playthroughs.jsonl")
+    if playthroughs != load(directory / "playthrough-verify.json") or playthroughs["sessions"] != 44:
+        raise ValueError("complete-game replay matrix differs")
+    if manifest["profile"] == "full":
+        if historical_sources is None:
+            raise ValueError("provide --historical-sources after acquiring the pinned WCDF inputs")
+        if load(directory / "DATASETS.json")["historical"] != load(checkout / "config/historical-v1.json")["sources"]:
+            raise ValueError("historical input provenance mismatch")
+        historical = replay(lab, "verify-historical", checkout / "config/historical-v1.json", historical_sources,
+                            data, directory, directory / "historical")
+        if historical != load(directory / "historical-verify.json") or historical["accepted"] != 174:
+            raise ValueError("historical holdout coverage differs")
+        if acceptance["gates"]["G09"] != "passed":
+            raise ValueError("G09 outcome contradicts historical replay")
+        if acceptance["gates"]["G12"] == "passed":
+            observed = load(directory / "ui/browser-observations.json")
+            if not any(row.get("full_game_turns") == 42 for row in observed):
+                raise ValueError("G12 complete browser game observation missing")
     for seed in MODEL_SEEDS:
         path = directory / f"seed-{seed}"
         check = replay(lab, "verify-model", data, path)
@@ -168,6 +191,8 @@ def verify(directory, checkout, commit, binary, lab, integrity_only):
     required = {"winner", "route", "frontier", "model", "corruption", "missing", "source", "failed_replay"}
     if profile == "diagnostic":
         required.remove("frontier")
+    else:
+        required.update({"historical-target", "historical-score", "completed-winner"})
     if {row["case"] for row in controls} != required or any(row["exit"] != 1 or row["expected_reason"] not in row["stderr"] for row in controls):
         raise ValueError("semantic negative-control execution is incomplete")
     executed = list(lines(directory / "COMMANDS.jsonl"))
@@ -189,6 +214,7 @@ def main():
     parser.add_argument("--expected", default=None)
     parser.add_argument("--binary-dir", type=Path)
     parser.add_argument("--case")
+    parser.add_argument("--historical-sources", type=Path)
     parser.add_argument("--integrity-only", action="store_true")
     args = parser.parse_args()
     checkout = args.checkout.resolve()
@@ -203,7 +229,7 @@ def main():
         check_seal(args.directory, commit, checkout / "config/evidence-ed25519.pub")
         print(json.dumps(verify_case(args.directory, args.case, binary, lab)))
     else:
-        verify(args.directory, checkout, commit, binary, lab, args.integrity_only)
+        verify(args.directory, checkout, commit, binary, lab, args.integrity_only, args.historical_sources)
 
 
 if __name__ == "__main__":
