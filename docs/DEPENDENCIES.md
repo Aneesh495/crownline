@@ -17,3 +17,7 @@ the registry records pinned in [Cargo.lock](../Cargo.lock).
 The optional external Marcher comparator is MIT-licensed and pinned in
 the experiment plan. Its original code, networks and databases are kept
 outside the product archive and normal game runtime.
+
+Pinned historical inputs are acquired with the system curl command and its
+configured TLS trust store. The acquisition recipe checks both exact length
+and SHA-256 before saving bytes.

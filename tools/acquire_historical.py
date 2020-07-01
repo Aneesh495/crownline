@@ -4,7 +4,7 @@ import argparse
 from hashlib import sha256
 import json
 from pathlib import Path
-from urllib.request import urlopen
+import subprocess
 
 from evidence_common import ROOT, storage
 
@@ -19,8 +19,11 @@ for source in manifest["sources"]:
     if target.exists():
         raw = target.read_bytes()
     else:
-        with urlopen(source["url"], timeout=30) as response:
-            raw = response.read(source["bytes"] + 1)
+        raw = subprocess.check_output([
+            "curl", "--proto", "=https", "--proto-redir", "=https", "--location",
+            "--fail", "--silent", "--show-error", "--max-time", "30",
+            "--max-filesize", str(source["bytes"]), source["url"],
+        ], timeout=35)
     if len(raw) != source["bytes"] or sha256(raw).hexdigest() != source["sha256"]:
         raise SystemExit(f"Historical source identity mismatch: {source['file']}")
     if not target.exists():

@@ -3,7 +3,7 @@
 The frozen WCDF holdout contains the 2007 Las Vegas GAYP and 2011 San Remo
 GAYP archives. The manifest pins their exact bytes, source order, dialect,
 record counts and the three preview model identities. The acquisition
-command verifies every downloaded byte before saving it.
+command uses system curl and verifies length and SHA-256 before saving bytes.
 [WCDF game downloads](https://wcdf.net/games.htm)
 
 Run the native evaluation against the extracted preview evidence bundle.
