@@ -20,8 +20,10 @@ jobs:
         timeout-minutes: 3
         run: |
           if ! command -v dot >/dev/null; then
-            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 update
-            sudo apt-get -o Acquire::Retries=2 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15 install -y graphviz
+            printf '%s\n' 'deb [signed-by=/usr/share/keyrings/ubuntu-archive-keyring.gpg] https://archive.ubuntu.com/ubuntu noble main universe' > "$RUNNER_TEMP/crownline-ubuntu.list"
+            apt_options=(-o "Dir::Etc::sourcelist=$RUNNER_TEMP/crownline-ubuntu.list" -o 'Dir::Etc::sourceparts=-' -o Acquire::Retries=1 -o Acquire::https::Timeout=15)
+            sudo apt-get "${apt_options[@]}" update
+            sudo apt-get "${apt_options[@]}" install -y --no-install-recommends graphviz
           fi
       - run: rustup toolchain install 1.88.0 --profile minimal --component rustfmt --component clippy
       - run: make ci
