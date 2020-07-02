@@ -3,7 +3,7 @@
 An original English draughts engine, browser board and endgame laboratory.
 
 [Preview downloads and signed evidence](https://github.com/Aneesh495/crownline/releases)
-· [Measured results](docs/RESULTS.md)
+· [Original results](docs/RESULTS.md) · [Historical and complete-game results](docs/FOLLOWUP_RESULTS.md)
 
 ![Crownline reviewing a branching capture and a four-piece draw](docs/images/board-review.png)
 
