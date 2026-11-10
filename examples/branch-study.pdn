@@ -1,0 +1,9 @@
+[Event "Branch and defense study"]
+[GameType "21"]
+[FEN "B:BK8,K11:W7,15,K22"]
+[Source "Constructed Crownline regression fixture"]
+[Result "*"]
+
+{Two complete captures of different lengths are legal.}
+1. 11x2 (1. 11x18x25 {The longer route is optional.})
+1... 15-11 (1... 15-10 {This preserves the board-only draw.}) *
