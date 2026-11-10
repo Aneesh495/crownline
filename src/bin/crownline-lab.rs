@@ -32,6 +32,7 @@ fn number<T: std::str::FromStr>(text: &str) -> Result<T, String> {
 fn run(args: &[String]) -> Result<(), String> {
     let args = args.iter().map(String::as_str).collect::<Vec<_>>();
     match args.as_slice() {
+        ["tactics"] => show(crownline::lab::tactics::run()?),
         ["openings"] => show(crownline::lab::openings()),
         ["selfplay", directory, games] => show(selfplay::generate(Path::new(directory), number(games)?)?),
         ["train", data, directory, seed, epochs, fraction] => show(train::run(
@@ -48,6 +49,10 @@ fn run(args: &[String]) -> Result<(), String> {
             };
             show(arena::run(Path::new(model), Path::new(directory), kind(variant)?, profile, split, number(pairs)?)?)
         }
+        ["reference", engine, directory, pairs] => show(crownline::lab::reference::run(
+            Path::new(engine), Path::new(directory), number(pairs)?,
+        )?),
+        ["verify-reference", engine, directory] => show(verify::verify_reference(Path::new(engine), Path::new(directory))?),
         ["verify-arena", model, directory] => show(verify::verify_arena(Path::new(model), Path::new(directory))?),
         ["verify-data", data] => show(verify::verify_dataset(Path::new(data))?),
         ["verify-model", data, model] => show(verify::verify_model(Path::new(data), Path::new(model))?),
