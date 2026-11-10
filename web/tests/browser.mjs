@@ -150,7 +150,7 @@ try {
   await click('#analyze');
   await click('#cancel');
   assert.equal(await evaluate('document.querySelector("#analysis-output").textContent.includes("cancelled")'), true);
-  observations.push({ cancellation: 'browser aborted display; native hard limit active' });
+  observations.push({ cancellation: 'browser cancelled isolated native search' });
   assert.equal(observations.filter(row => row.exception).length, 0);
   await writeFile(join(output, 'browser-observations.json'), JSON.stringify(observations, null, 2) + '\n');
   console.log(JSON.stringify(observations, null, 2));

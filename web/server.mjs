@@ -133,6 +133,7 @@ export async function launch({
     for (const [id, room] of rooms) {
       if (room.native?.closed || now - room.touched > SESSION_TTL) {
         room.native?.close();
+        room.analysis?.close();
         rooms.delete(id);
       }
     }
@@ -222,6 +223,7 @@ export async function launch({
     const body = await jsonBody(req);
     if (operation === 'close' && room.local) {
       room.native.close();
+      room.analysis?.close();
       rooms.delete(id);
       reply(res, 200, {});
       return;
@@ -258,6 +260,26 @@ export async function launch({
     if (operation === 'study' && room.local) {
       const allowed = new Set(['analyze', 'import', 'restore', 'review', 'witness', 'bot']);
       if (!allowed.has(body.op)) throw new Problem(400, 'Unknown study request');
+      if (['analyze', 'review', 'witness'].includes(body.op)) {
+        if (room.analysis) throw new Problem(409, 'An analysis request is already running');
+        const native = new NativeSession(engine, body.op === 'analyze' ? undefined : table);
+        room.analysis = native;
+        const abort = () => native.close('Analysis request cancelled');
+        res.once('close', abort);
+        try {
+          if (body.op === 'analyze' && !body.fen && !body.pdn) {
+            const state = await room.native.request({ op: 'state' });
+            body.pdn = state.pdn;
+          }
+          if (res.destroyed) return;
+          reply(res, 200, await native.request(body));
+        } finally {
+          res.off('close', abort);
+          native.close();
+          room.analysis = undefined;
+        }
+        return;
+      }
       const value = body.op === 'bot'
         ? await once(room, role, body, () => {
           const { command_id, ...nativeRequest } = body;
@@ -294,7 +316,10 @@ export async function launch({
   server.setTimeout(22_000, socket => socket.destroy());
   server.on('close', () => {
     clearInterval(janitor);
-    for (const room of rooms.values()) room.native?.close();
+    for (const room of rooms.values()) {
+      room.native?.close();
+      room.analysis?.close();
+    }
   });
   await new Promise((resolve, reject) => {
     server.once('error', reject);
