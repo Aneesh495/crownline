@@ -533,8 +533,14 @@ controls.board.addEventListener('click', safe(async event => {
 }));
 controls.board.addEventListener('keydown', event => {
   if (event.key === 'Escape' && path.length) { path = []; renderGame(); return; }
-  const direction = { ArrowLeft: [0,-2], ArrowRight: [0,2], ArrowUp: [-1,0], ArrowDown: [1,0] }[event.key];
   const square = Number(event.target.dataset.square);
+  if (square && (event.key === 'Enter' || event.key === ' ')) {
+    event.preventDefault();
+    focusSquare = square;
+    safe(() => choose(square))();
+    return;
+  }
+  const direction = { ArrowLeft: [0,-2], ArrowRight: [0,2], ArrowUp: [-1,0], ArrowDown: [1,0] }[event.key];
   if (!direction || !square) return;
   event.preventDefault();
   const [row, col] = coords(square);
