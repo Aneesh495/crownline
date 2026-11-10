@@ -69,7 +69,40 @@ fn run() -> Result<(), String> {
                 serde_json::to_string_pretty(&table.probe(position)).map_err(|e| e.to_string())?
             );
         }
-        _ => return Err("commands: perft, legal, solve, verify-table, probe".into()),
+        "wire" => return crownline::wire::serve(args.next().map(Into::into)).map_err(|e| e.to_string()),
+        "search" => {
+            use crownline::{eval::Classical, game::History, search::{analyze, Config, Limits}};
+            let depth = args.next().ok_or("search DEPTH NODES [FEN]")?.parse::<u8>().map_err(|e| e.to_string())?;
+            let nodes = args.next().ok_or("search DEPTH NODES [FEN]")?.parse::<u64>().map_err(|e| e.to_string())?;
+            if nodes > 50_000_000 { return Err("CLI node limit is 50 million".into()); }
+            let position = args.next().map(|fen| fen.parse()).transpose()?.unwrap_or_else(Position::start);
+            let result = analyze(&History::new(position), &Classical, Limits::fixed(depth, nodes), Config::default());
+            println!("{}", serde_json::to_string_pretty(&crownline::wire::result_view(&result)).map_err(|e| e.to_string())?);
+        }
+        "review" | "pdn" => {
+            use crownline::{pdn, review};
+            let filename = args.next().ok_or("review|pdn INPUT [TABLE|--partial]")?;
+            let path = Path::new(&filename);
+            if path.metadata().map_err(|e| e.to_string())?.len() > pdn::MAX_INPUT as u64 { return Err("PDN file exceeds cap".into()); }
+            let input = std::fs::read_to_string(path).map_err(|e| e.to_string())?;
+            let option = args.next();
+            let record = pdn::import(&input, command == "pdn" && option.as_deref() == Some("--partial")).map_err(|e| e.to_string())?;
+            if let Some(diagnostic) = &record.diagnostic { eprintln!("{diagnostic}"); }
+            if command == "review" {
+                let tables = option.map(|p| tablebase::Tablebase::load(Path::new(&p))).transpose()?;
+                println!("{}", serde_json::to_string_pretty(&review::review(&record, tables.as_ref(), 1000)?).map_err(|e| e.to_string())?);
+            } else {
+                print!("{}", pdn::export(&record));
+            }
+        }
+        "witness" => {
+            let directory = args.next().ok_or("witness TABLE FEN")?;
+            let position = args.next().ok_or("witness TABLE FEN")?.parse()?;
+            let table = tablebase::Tablebase::load(Path::new(&directory))?;
+            let witness = crownline::review::witness(position, &table, 32)?;
+            println!("{}", serde_json::to_string_pretty(&witness).map_err(|e| e.to_string())?);
+        }
+        _ => return Err("commands: perft, legal, solve, verify-table, probe, search, pdn, review, witness, wire".into()),
     }
     if args.next().is_some() {
         return Err("unexpected extra argument".into());
