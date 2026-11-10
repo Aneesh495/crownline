@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Crownline English draughts and endgame analysis">
+  <title>Crownline | English draughts</title>
+  <link rel="stylesheet" href="/style.css">
+  <script type="module" src="/board.js"></script>
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-inner">
+      <a class="wordmark" href="/" aria-label="Crownline home"><span aria-hidden="true">♛</span> Crownline</a>
+      <p>English draughts <span> / </span> Native engine</p>
+      <span class="badge"><span class="light" aria-hidden="true"></span> WCDF rules</span>
+    </div>
+  </header>
+  <main>
+    <section class="intro">
+      <p class="eyebrow">The playing room</p>
+      <h1>English draughts<span>.</span></h1>
+      <p>Play a game, follow a capture line, or study an ending.</p>
+    </section>
+    <div class="workbench">
+      <section class="board-column" aria-label="Playing board">
+        <div class="player" id="top-player">
+          <span class="player-icon white" aria-hidden="true"></span>
+          <div><strong id="top-name">White</strong><small id="top-status">Player</small></div>
+          <span id="top-clock" class="clock" aria-label="White clock">∞</span>
+        </div>
+        <div id="board" class="board" data-zoom="large" aria-label="Numbered English draughts board"></div>
+        <div class="player" id="bottom-player">
+          <span class="player-icon black" aria-hidden="true"></span>
+          <div><strong id="bottom-name">Black</strong><small id="bottom-status">To move</small></div>
+          <span id="bottom-clock" class="clock" aria-label="Black clock">∞</span>
+        </div>
+        <div class="board-tools">
+          <button type="button" id="flip" title="Rotate the view without renumbering squares">↻ Flip</button>
+          <button type="button" id="numbers" aria-pressed="true"># Numbers</button>
+          <label>Board size <select id="zoom"><option value="large">Large</option><option value="medium">Medium</option><option value="small">Small</option></select></label>
+        </div>
+      </section>
+      <section class="console" aria-label="Game and analysis controls">
+        <nav class="tabs" aria-label="Workbench panels">
+          <button type="button" class="tab active" data-panel="game">Play</button>
+          <button type="button" class="tab" data-panel="analysis">Analysis</button>
+          <button type="button" class="tab" data-panel="record">PDN</button>
+        </nav>
+        <section id="panel-game" class="panel">
+          <div class="panel-title">
+            <div><p class="eyebrow" id="game-mode">Local study</p><h2 id="status" aria-live="polite">Loading board</h2></div>
+            <span class="badge" id="revision">0 ply</span>
+          </div>
+          <p id="hint" class="hint">Select a piece to begin. Arrow keys move between squares.</p>
+          <p id="notice" class="notice" role="alert" hidden></p>
+          <section id="invitation" class="inset" hidden>
+            <label for="invite-link">One-use invite</label>
+            <div class="row"><input id="invite-link" readonly><button type="button" id="copy-invite">Copy</button></div>
+          </section>
+          <section class="scorecard">
+            <div class="section-heading"><h3>Move record</h3><span id="capture-label"></span></div>
+            <div id="turns" class="turns" aria-label="Game turns"></div>
+            <div class="row action-row">
+              <button type="button" id="takeback">Take back</button>
+              <button type="button" id="pause">Pause clock</button>
+              <button type="button" id="draw">Offer draw</button>
+              <button type="button" id="claim">Claim draw</button>
+              <button type="button" id="resign">Resign</button>
+              <button type="button" id="rematch">Rematch</button>
+            </div>
+          </section>
+          <form id="new-game">
+            <div class="section-heading"><h3>New game</h3></div>
+            <div class="fields">
+              <label>Mode
+                <select id="mode">
+                  <option value="study">Local study</option>
+                  <option value="local">Local two-player</option>
+                  <option value="bot">Play Black vs engine</option>
+                  <option value="bot-black">Play White vs engine</option>
+                  <option value="bots">Engine vs engine</option>
+                  <option value="room">Invite-only room</option>
+                </select>
+              </label>
+              <label>Clock
+                <select id="time-control">
+                  <option value="">No clock</option><option value="180000,2000">3 min + 2 s</option>
+                  <option value="300000,3000">5 min + 3 s</option><option value="900000,10000">15 min + 10 s</option>
+                </select>
+              </label>
+              <label>Engine level
+                <select id="difficulty"><option value="quick">Quick</option><option value="club" selected>Club</option><option value="deep">Deep</option></select>
+              </label>
+              <label>Opening
+                <select id="opening">
+                  <option value="">Free start</option>
+                  <option value="9-14 22-17 11-15">Double Corner Dyke</option>
+                  <option value="9-13 24-20 10-15">Ballot 24</option>
+                </select>
+              </label>
+            </div>
+            <label class="stack">Position <input id="new-fen" placeholder="Standard start or numeric FEN" maxlength="256"></label>
+            <button class="primary" type="submit">Start game</button>
+          </form>
+        </section>
+        <section id="panel-analysis" class="panel" hidden>
+          <div class="panel-title"><div><p class="eyebrow">Private study</p><h2>Analysis desk</h2></div></div>
+          <p class="hint">Search estimates use complete turns. Endgame witnesses use the board-only proof.</p>
+          <div class="row action-row">
+            <button type="button" class="primary" id="analyze">Analyze position</button>
+            <button type="button" id="cancel">Cancel</button>
+            <button type="button" id="witness">Endgame witness</button>
+          </div>
+          <pre id="analysis-output" class="output" aria-live="polite">Select a position to analyze.</pre>
+          <div id="review-results"></div>
+        </section>
+        <section id="panel-record" class="panel" hidden>
+          <div class="panel-title"><div><p class="eyebrow">Game records</p><h2>PDN notebook</h2></div></div>
+          <p class="hint">Paste a GameType 21 record with numeric squares, then browse its main line and variations.</p>
+          <label class="stack" for="pdn">Portable Draughts Notation</label>
+          <textarea id="pdn" rows="9" spellcheck="false" placeholder="1. 9-13 21-17 *"></textarea>
+          <div class="row action-row">
+            <button type="button" class="primary" id="import">Import</button>
+            <button type="button" id="import-partial">Read valid prefix</button>
+            <button type="button" id="export">Export current</button>
+            <button type="button" id="review">Review game</button>
+          </div>
+          <p id="record-info" class="hint" aria-live="polite"></p>
+          <div id="variation-tree" class="tree"></div>
+        </section>
+      </section>
+    </div>
+    <footer><span>Crownline</span><span>32 squares · complete-turn notation · PDN 3</span></footer>
+  </main>
+</body>
+</html>
