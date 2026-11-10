@@ -185,6 +185,11 @@ def execute(options):
     runner.run("build", ["cargo", "build", "--locked", "--release"], timeout=300)
     runner.run("tests", ["cargo", "test", "--release", "--locked", "--", "--nocapture"], timeout=300)
     runner.run("api", ["node", "--test", "web/tests/session.test.mjs"])
+    runner.run("verifier-smoke", [sys.executable, "tools/smoke_verifier.py"])
+    runner.run("package", [sys.executable, "tools/package_release.py", "0.1.0-preview"])
+    package = source / "dist" / f"crownline-0.1.0-preview-{platform.system().lower()}-{platform.machine()}.tar.gz"
+    runner.run("package-replay", [sys.executable, "tools/test_package.py", package])
+    save(output / "PACKAGE.json", {"file": package.name, "sha256": digest(package), "bytes": package.stat().st_size})
     bin_dir = source / "target/release"
     binary = bin_dir / "crownline"
     lab = bin_dir / "crownline-lab"
