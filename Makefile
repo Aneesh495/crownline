@@ -82,4 +82,5 @@ ci: test docs
 	cargo fmt --check
 	cargo clippy --locked --all-targets -- -D warnings
 	python3 tools/smoke_verifier.py
-	python3 tools/package_release.py ci
+	python3 tools/package_release.py "$(RELEASE_VERSION)"
+	python3 tools/test_package.py dist/crownline-$(RELEASE_VERSION)-$$(uname -s | tr A-Z a-z)-$$(uname -m).tar.gz

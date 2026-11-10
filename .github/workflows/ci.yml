@@ -19,3 +19,9 @@ jobs:
       - run: sudo apt-get update && sudo apt-get install -y graphviz
       - run: rustup toolchain install 1.88.0 --profile minimal --component rustfmt --component clippy
       - run: make ci
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: crownline-linux-preview
+          path: dist/*.tar.gz*
+          if-no-files-found: error
+          retention-days: 14
