@@ -1,0 +1,12 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Model update and selection", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  games [label="Original self-play games"];
+  labels [label="Deeper teacher + mover outcome"];
+  filter [label="Group split and overlap exclusion"];
+  fit [label="Three random initializations"];
+  quant [label="Fixed-point parity probes"];
+  promote [label="Validation pair confidence gate"];
+  games -> labels -> filter -> fit -> quant -> promote;
+}

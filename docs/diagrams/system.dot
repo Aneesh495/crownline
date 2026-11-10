@@ -1,0 +1,15 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="System context", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  browser [label="Browser / PDN notebook"];
+  remote [label="Second authenticated browser"];
+  host [label="Node HTTP service"];
+  native [label="Rust game session"];
+  repo [label="Source checkout"];
+  campaign [label="Independent campaign verifier"];
+  browser -> host;
+  remote -> host;
+  host -> native;
+  repo -> campaign;
+}

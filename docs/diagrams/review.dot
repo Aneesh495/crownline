@@ -1,0 +1,14 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Game review", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  input [label="Imported PDN + source hash"];
+  legal [label="Replay full turns and nested variations"];
+  same [label="Candidate histories share prefix"];
+  searches [label="Shallow and deep fixed-node estimates"];
+  probes [label="Board-only WDL certificate"];
+  display [label="Played turn, alternatives, score graph"];
+  input -> legal -> same;
+  same -> {searches probes};
+  {searches probes} -> display;
+}

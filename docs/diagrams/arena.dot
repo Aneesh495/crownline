@@ -1,0 +1,14 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Color pairing and uncertainty", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  family [label="Frozen two-turn family"];
+  opening [label="Three-turn test prefix"];
+  black [label="Challenger plays Black"];
+  white [label="Challenger plays White"];
+  replay [label="Replay ledger and verify outcome"];
+  bootstrap [label="Bootstrap whole opening families"];
+  family -> opening;
+  opening -> {black white};
+  {black white} -> replay -> bootstrap;
+}

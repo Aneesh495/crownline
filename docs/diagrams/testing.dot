@@ -1,0 +1,13 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Verification layers", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  unit [label="Rules, perft, search oracle"];
+  integration [label="Real Node-to-Rust sessions"];
+  ui [label="Chromium and keyboard"];
+  experiment [label="Signed WDL and match replay"];
+  ci [label="Ordinary CI"];
+  manual [label="Clean evidence campaign"];
+  {unit integration} -> ci;
+  {ui experiment} -> manual;
+}

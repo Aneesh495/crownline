@@ -1,0 +1,14 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Closed retrograde graph", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  inputs [label="Legal occupancy + pieces"];
+  csr [label="Unique successors and reverse CSR"];
+  queue [label="Terminal and lower-slice seeds"];
+  remaining [label="Remaining successors per parent"];
+  proof [label="Finite witnesses or residual draw"];
+  frontier [label="External unresolved frontier"];
+  inputs -> csr -> queue -> remaining -> proof;
+  remaining -> queue [label="new decisive state"];
+  csr -> frontier [label="open exploration only"];
+}

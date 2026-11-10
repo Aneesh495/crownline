@@ -1,0 +1,14 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Transposition scope", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  state [label="History and position"];
+  policy [label="Board-only or fresh suffix?"];
+  reuse [label="Match exact board, depth, ply"];
+  skip [label="Generate without bound reuse"];
+  pvs [label="Negamax/PVS and capture quiescence"];
+  state -> policy;
+  policy -> reuse [label="yes"];
+  policy -> skip [label="no"];
+  {reuse skip} -> pvs;
+}

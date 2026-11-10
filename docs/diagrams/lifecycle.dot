@@ -1,0 +1,15 @@
+digraph Crownline {
+  graph [rankdir=LR, bgcolor="white", pad=.16, label="Clock and game lifecycle", labelloc=t];
+  node [shape=box, style="rounded,filled", fillcolor="#eef3e9", color="#526e5a", fontname="Helvetica", fontsize=10];
+  edge [color="#586d5f", fontname="Helvetica", fontsize=9];
+  waiting [label="Waiting for second player"];
+  active [label="Active turn and monotonic clock"];
+  paused [label="Local clock paused"];
+  outcome [label="Terminal or claimed outcome"];
+  reset [label="Consensual rematch with new revision"];
+  waiting -> active;
+  active -> paused [label="local pause"];
+  paused -> active [label="resume"];
+  active -> outcome;
+  outcome -> reset -> active;
+}
