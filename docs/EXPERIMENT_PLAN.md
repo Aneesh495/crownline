@@ -53,7 +53,8 @@ matched-time experiment. The pinned comparator candidate is
 Use the first 24 test prefixes, both colors, and 4 ms nominal search time.
 Marcher uses its native CPU clock and scalar network with the opening book
 unavailable and tablebase disabled. Crownline uses a wall deadline. Count
-turns over twice the nominal time, apply a 75 ms watchdog, and keep this
+turns over twice the nominal time, apply a 75 ms watchdog after the startup
+handshake, and keep this
 comparison separate from the paired promotion test.
 
 ## Engineering endpoints
