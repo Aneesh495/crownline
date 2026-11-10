@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 import gzip
+import json
 import platform
 from pathlib import Path
 import re
 import sys
+import subprocess
 import tarfile
 import tempfile
 import shutil
@@ -25,13 +27,34 @@ with tempfile.TemporaryDirectory(dir=dist) as temporary:
     (folder / "bin").mkdir(parents=True)
     for name in ("crownline", "crownline-lab"):
         shutil.copy2(ROOT / "target/release" / name, folder / "bin" / name)
-    for name in ("docs", "examples", "config"):
-        shutil.copytree(ROOT / name, folder / name)
-    (folder / "web").mkdir()
-    shutil.copytree(ROOT / "web/public", folder / "web/public")
-    for name in ("server.mjs", "native.mjs"):
-        shutil.copy2(ROOT / "web" / name, folder / "web" / name)
-    shutil.copy2(ROOT / "README.md", folder)
+    for name in ("docs", "examples", "config", "src", "tests", "tools", "web"):
+        shutil.copytree(ROOT / name, folder / name, ignore=shutil.ignore_patterns("__pycache__"))
+    for name in ("README.md", "CONTRIBUTING.md", "Cargo.lock", "Cargo.toml", "Makefile", "rust-toolchain.toml"):
+        shutil.copy2(ROOT / name, folder)
+    notices = folder / "third-party-notices"
+    notices.mkdir()
+    metadata = json.loads(subprocess.check_output([
+        "cargo", "metadata", "--locked", "--offline", "--format-version", "1",
+    ], cwd=ROOT, timeout=30))
+    rows = []
+    for dep in metadata["packages"]:
+        if dep["source"] is None:
+            continue
+        identity = dep["name"] + "-" + dep["version"]
+        source = Path(dep["manifest_path"]).parent
+        group = notices / identity
+        group.mkdir()
+        files = [file for file in source.iterdir() if file.is_file() and file.name.upper().startswith(("LICENSE", "COPYING", "NOTICE"))]
+        if not files:
+            raise SystemExit(f"No bundled upstream notice found for {identity}")
+        for file in files:
+            shutil.copy2(file, group / file.name)
+        rows.append(f"{identity}  {dep['license']}")
+    rust = Path(subprocess.check_output(["rustc", "--print", "sysroot"], cwd=ROOT, text=True, timeout=15).strip())
+    rust_notices = rust / "share/doc/rust/licenses"
+    if rust_notices.is_dir():
+        shutil.copytree(rust_notices, notices / "rust-toolchain")
+    (notices / "index.txt").write_text("\n".join(sorted(rows)) + "\n")
     launcher = folder / "run-board"
     launcher.write_text(
         '#!/bin/sh\nset -eu\ncd "$(dirname "$0")"\n'
@@ -44,7 +67,7 @@ with tempfile.TemporaryDirectory(dir=dist) as temporary:
         item.uname = item.gname = ""
         return item
 
-    with tempfile_path.open("wb") as raw, gzip.GzipFile(fileobj=raw, mtime=0, filename="") as gz:
+    with tempfile_path.open("wb") as raw, gzip.GzipFile(fileobj=raw, mode="wb", mtime=0, filename="") as gz:
         with tarfile.open(fileobj=gz, mode="w|") as bundle:
             bundle.add(folder, arcname=base, filter=normalize)
 tempfile_path.replace(archive)

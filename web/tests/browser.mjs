@@ -101,6 +101,7 @@ try {
   await command('Page.navigate', { url: origin });
   await until(() => evaluate('document.querySelectorAll("[data-square]").length === 32'), 'initial board');
   assert.equal(await evaluate('document.querySelectorAll(".piece").length'), 24);
+  assert.equal(await evaluate('document.querySelector("#top-name").textContent'), 'Black');
   assert.ok(await evaluate('[...document.querySelectorAll(".square")].every(tile => { const box = tile.getBoundingClientRect(); return Math.abs(box.width - box.height) <= 1; })'));
   await evaluate('document.querySelector("[data-square=\\"9\\"]").focus()');
   await key('Enter', 'Enter', 13);
@@ -132,6 +133,7 @@ try {
   assert.ok(await evaluate('document.documentElement.scrollWidth <= innerWidth'));
   await click('#flip');
   assert.equal(await evaluate('document.querySelector("[data-square]").dataset.square'), '32');
+  assert.equal(await evaluate('document.querySelector("#top-name").textContent'), 'White');
   await shot('board-mobile.png');
   observations.push({ viewport: [390, 844], overflow: false, flipped_first_square: 32 });
 
